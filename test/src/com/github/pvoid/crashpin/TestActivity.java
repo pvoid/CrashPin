@@ -10,10 +10,20 @@ public class TestActivity extends Activity
     System.loadLibrary("crashpin");
   }
 
+  Thread _mThread = new Thread()
+  {
+    @Override
+    public void run()
+    {
+      doCrash();
+    }
+  };
+
   public void onCreate(Bundle savedInstanceState)
   {
     super.onCreate(savedInstanceState);
     doCrash();
+    _mThread.start();
   }
 
   private native void doCrash();

@@ -30,6 +30,8 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <android/log.h>
+#include <sys/ptrace.h>
+#include <errno.h>
 //+----------------------------------------------------------------------------+
 //|                                                                            |
 //+----------------------------------------------------------------------------+
@@ -42,6 +44,11 @@
 #ifndef PR_SET_DUMPABLE
 #define PR_SET_DUMPABLE   4
 #endif
+//+----------------------------------------------------------------------------+
+//|                                                                            |
+//+----------------------------------------------------------------------------+
+#define ProgramTag "CrashPin"
+#define FAILED(x)  (x)<0
 //+----------------------------------------------------------------------------+
 //|                                                                            |
 //+----------------------------------------------------------------------------+
@@ -86,19 +93,79 @@ void SCrashPin::SigactionHandler(int sig, siginfo* info, void* reserved)
       return;
     case 0:
       Mosquito(pid,tid);
+      kill(getpid(), SIGKILL);
       break;
     default:
-      wait(NULL);
+      kill(getpid(), SIGSTOP);
       break;
   }
-////////
-  kill(getpid(),SIGKILL);
 }
 //+----------------------------------------------------------------------------+
 //|                                                                            |
 //+----------------------------------------------------------------------------+
 void SCrashPin::Mosquito(pid_t pid, pid_t tid)
 {
-  __android_log_print(ANDROID_LOG_ERROR,"DEBUG","We crashed. Pid: %d, tid: %d. Self pid: %d",pid,tid,getpid());
+  int status, signal;
+////////
+// Attaching to process and thread
+////////
+  if(FAILED(ptrace(PTRACE_ATTACH,pid,0,0)))
+  {
+    __android_log_print(ANDROID_LOG_ERROR,ProgramTag,"Can't attach to process over ptrace");
+    kill(pid, SIGKILL);
+    return;
+  }
+  if(pid!=tid && FAILED(ptrace(PTRACE_ATTACH,tid,0,0)))
+  {
+    __android_log_print(ANDROID_LOG_ERROR, ProgramTag, "Can't attach to thread over ptrace");
+    kill(pid, SIGKILL);
+    return;
+  }
+////////
+// Catching child signal
+////////
+  do
+  {
+    if(FAILED(waitpid(tid,&status,__WALL)))
+    {
+      if(errno == EAGAIN)
+        continue;
+      break;
+    }
+////////
+    if(WIFSTOPPED(status))
+    {
+      signal = WSTOPSIG(status);
+      switch(signal)
+      {
+        case SIGSTOP:
+        {
+          if(FAILED(ptrace(PTRACE_CONT, tid, 0, 0)))
+            break;
+          continue;
+        }
+        case SIGILL:
+        case SIGABRT:
+        case SIGBUS:
+        case SIGFPE:
+        case SIGSEGV:
+        case SIGSTKFLT:
+        {
+          siginfo signal_info;
+          ptrace(PTRACE_GETSIGINFO, tid, NULL, &signal_info);
+          
+          __android_log_print(ANDROID_LOG_ERROR, ProgramTag, "Process caught signal %d",signal_info.si_signo);
+          break;
+        }
+      }
+    }
+////////
+    break;
+  }
+  while(1);
+////////
+// Killing child process
+////////
+  kill(pid,SIGKILL);
 }
 //+----------------------------------------------------------------------------+
