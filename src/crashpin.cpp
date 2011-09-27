@@ -32,6 +32,8 @@
 #include <android/log.h>
 #include <sys/ptrace.h>
 #include <errno.h>
+
+#include "stacktrace.h"
 //+----------------------------------------------------------------------------+
 //|                                                                            |
 //+----------------------------------------------------------------------------+
@@ -155,6 +157,8 @@ void SCrashPin::Mosquito(pid_t pid, pid_t tid)
           ptrace(PTRACE_GETSIGINFO, tid, NULL, &signal_info);
           
           __android_log_print(ANDROID_LOG_ERROR, ProgramTag, "Process caught signal %d",signal_info.si_signo);
+          
+          CStackTrace trace(tid);
           break;
         }
       }
