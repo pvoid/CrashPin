@@ -34,5 +34,7 @@
 CStackTrace::CStackTrace(pid_t tid) : m_map(tid)
 {
   if(ptrace(PTRACE_GETREGS, tid, 0, &m_regs)!=0)
-     memset(m_regs,0,sizeof(m_regs));
+     memset(&m_regs,0,sizeof(m_regs));
+  
+  m_map.Dump();
 }

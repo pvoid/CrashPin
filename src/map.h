@@ -31,6 +31,7 @@
 #define MAPINFO_MARK
 /////////
 #include <unistd.h>
+#include <unwind.h>
 /////////
 #ifndef NULL
 #define NULL 0
@@ -39,36 +40,51 @@
 class CMap
 {
 public:
-                     CMap(pid_t pid);
+                     CMap(pid_t tid);
                     ~CMap();
+////////////////////////////////////////
+#ifndef NDEBUG
+  void               Dump();
+#endif
+////////////////////////////////////////
+  const void*        GetEntry(_uw address);
 private:
   struct Symbol
   {
-    unsigned int addr;
-    unsigned int size;
+    uint32_t addr;
+    uint32_t size;
     char *name;
   };
-  
+////////////////////////////////////////
   struct SymbolTable
   {
     struct Symbol *symbols;
     int num_symbols;
     char *name;
   };
-
+////////////////////////////////////////
   struct MapInfo
   {
     struct MapInfo *next;
-    unsigned start;
-    unsigned end;
-    unsigned exidx_start;
-    unsigned exidx_end;
+    uint32_t start;
+    uint32_t end;
+    uint32_t exidx_start;
+    uint32_t exidx_end;
     struct SymbolTable *symbols;
     char name[];
   };
+////////////////////////////////////////
+  struct TableEntry
+  {
+    _uw function_offset;
+    _uw function_content;
+  };
 private:
+  pid_t              m_tid;
   MapInfo*           m_maps;
 private:
   MapInfo*           ParseLine(char *line);
+  _uw                RelativeOffset(const _uw* address);
+  const TableEntry*  FindFunction(const TableEntry* table, int nrec, _uw return_address);
 };
 #endif
