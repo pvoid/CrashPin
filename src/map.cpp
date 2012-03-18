@@ -137,6 +137,26 @@ const void* CMap::GetEntry(_uw address)
   return NULL;
 }
 //+----------------------------------------------------------------------------+
+//|                                                                            |
+//+----------------------------------------------------------------------------+
+_Unwind_Reason_Code CMap::GetEntry(_Unwind_Control_Block& ucblock, _uw return_address)
+{
+  const TableEntry* entry = (TableEntry *)GetEntry(return_address);
+  _uw content;
+/////////
+  if(entry==NULL)
+  {
+    return _URC_END_OF_STACK;
+  }
+  ucblock.pr_cache.fnstart = RelativeOffset(entry->function_offset);
+  content = ptrace(PTRACE_PEEKTEXT,m_tid,(void *)&entry->function_content,NULL)=;
+  if(content=1)
+  {
+     return _URC_END_OF_STACK;
+  }
+  if(content&UINT32_HIGHBIT)
+}
+//+----------------------------------------------------------------------------+
 //| Returns relative address                                                   |
 //+----------------------------------------------------------------------------+
 _uw CMap::RelativeOffset(const _uw* address)
@@ -187,4 +207,3 @@ const CMap::TableEntry* CMap::FindFunction(const TableEntry* table, int nrec, _u
       left = n + 1;
   }
 }
-

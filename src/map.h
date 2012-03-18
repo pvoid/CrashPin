@@ -47,7 +47,13 @@ public:
   void               Dump();
 #endif
 ////////////////////////////////////////
-  const void*        GetEntry(_uw address);
+  const void*         GetEntry(_uw address);
+  _Unwind_Reason_Code GetEntry(_Unwind_Control_Block &ucblok, _uw return_address);
+private:
+  enum EnConstants
+  {
+    UINT32_HIGHBIT = (((_uw)1) << 31)
+  }
 private:
   struct Symbol
   {

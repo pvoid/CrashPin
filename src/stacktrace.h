@@ -38,13 +38,30 @@
 //+----------------------------------------------------------------------------+
 //|                                                                            |
 //+----------------------------------------------------------------------------+
+struct StackItem
+{
+  struct StackItem  *next;
+  _uw                address;
+  char               function[64];
+  char               module[];
+};
+//+----------------------------------------------------------------------------+
+//|                                                                            |
+//+----------------------------------------------------------------------------+
 class CStackTrace
 {
 public:
-                     CStackTrace(pid_t tid);
- bool                BackTrace(FILE *file);
+                      CStackTrace(pid_t tid);
+  bool                BackTrace(FILE *file);
+#ifndef NDEBUG
+  void                Dump();
+#endif
 private:
- CMap                m_map;
- pt_regs             m_regs;
+  CMap                m_map;
+  StackItem*          m_stack_first;
+  StackItem*          m_stack_last;
+  pt_regs             m_regs;
+private:
+  bool                AddStackRecord(_uw address, const char* function_name, const char* module_name);
 };
 #endif
