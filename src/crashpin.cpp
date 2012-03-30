@@ -159,6 +159,7 @@ void SCrashPin::Mosquito(pid_t pid, pid_t tid)
           __android_log_print(ANDROID_LOG_ERROR, ProgramTag, "Process caught signal %d",signal_info.si_signo);
           
           CStackTrace trace(tid);
+          trace.BackTrace();
           trace.Dump();
           
           kill(pid,SIGKILL);

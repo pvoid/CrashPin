@@ -47,13 +47,14 @@ public:
   void               Dump();
 #endif
 ////////////////////////////////////////
-  const void*         GetEntry(_uw address);
   _Unwind_Reason_Code GetEntry(_Unwind_Control_Block &ucblok, _uw return_address);
+  bool                IsValidAddress(_uw address);
+  bool                GetNames(_uw address, const char *mname, uint mname_maxlen, const char *fname, uint fname_maxlen);
 private:
   enum EnConstants
   {
     UINT32_HIGHBIT = (((_uw)1) << 31)
-  }
+  };
 private:
   struct Symbol
   {
@@ -91,6 +92,9 @@ private:
 private:
   MapInfo*           ParseLine(char *line);
   _uw                RelativeOffset(const _uw* address);
+  const TableEntry*  GetEntry(_uw address);
   const TableEntry*  FindFunction(const TableEntry* table, int nrec, _uw return_address);
+private:
+  //static _Unwind_Reason_Code UnwindCppPr0WithPtrace(_Unwind_State state, _Unwind_Control_Block* ucbp, _Unwind_Context* context, pid_t pid)
 };
 #endif

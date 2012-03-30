@@ -119,7 +119,57 @@ CMap::MapInfo* CMap::ParseLine(char* line)
 //+----------------------------------------------------------------------------+
 //|                                                                            |
 //+----------------------------------------------------------------------------+
-const void* CMap::GetEntry(_uw address)
+bool CMap::IsValidAddress(_uw address)
+{
+  return GetEntry(address)!=NULL;
+}
+//+----------------------------------------------------------------------------+
+//|                                                                            |
+//+----------------------------------------------------------------------------+
+bool CMap::GetNames(_uw address, const char *mname, uint mname_maxlen, const char *fname, uint fname_maxlen)
+{
+  MapInfo *temp = m_maps;
+  uint len;
+/////////
+  if(mname==NULL || fname==NULL)
+     return(false);
+/////////
+  while(temp!=NULL)
+  {
+    if(address>=temp->start && address<=temp->end)
+    {
+      strncpy(mname,temp->name,mname_maxlen);
+      len = strlen(temp->name);
+      if(len>3 && memcmp(temp->name+(len-3),".so")==0)
+      {
+        if(!strstr(temp->name, ".so"))
+        {
+          fname[0]='\0';
+          return true;
+        }
+        else
+        {
+          /*TableEntry *te = FindFunction((TableEntry *)temp->exidx_start, (temp->exidx_end - temp->exidx_start) / sizeof(TableEntry), address);
+          if(te==NULL)
+            fname[0]='\0';
+          else
+            strncpy(fname,te->)*/
+        }
+      }
+      return(true);
+    }
+    temp = temp->next;
+  }
+/////////
+  strncpy(mname,"<trash>",mname_maxlen);
+  fname[0] = '\0';
+/////////
+  return false;
+}
+//+----------------------------------------------------------------------------+
+//|                                                                            |
+//+----------------------------------------------------------------------------+
+const CMap::TableEntry* CMap::GetEntry(_uw address)
 {
   MapInfo *temp = m_maps;
 /////////
@@ -146,15 +196,57 @@ _Unwind_Reason_Code CMap::GetEntry(_Unwind_Control_Block& ucblock, _uw return_ad
 /////////
   if(entry==NULL)
   {
+    ucblock.unwinder_cache.reserved2 = 0;
     return _URC_END_OF_STACK;
   }
-  ucblock.pr_cache.fnstart = RelativeOffset(entry->function_offset);
-  content = ptrace(PTRACE_PEEKTEXT,m_tid,(void *)&entry->function_content,NULL)=;
+  ucblock.pr_cache.fnstart = RelativeOffset(&entry->function_offset);
+  content = ptrace(PTRACE_PEEKTEXT,m_tid,(void *)&entry->function_content,NULL);
+//////// Can this frame be unwunded
   if(content=1)
   {
-     return _URC_END_OF_STACK;
+    ucblock.unwinder_cache.reserved2 = 0;
+    return _URC_END_OF_STACK;
   }
+//////// Obtaining the address of real header
   if(content&UINT32_HIGHBIT)
+  {
+    ucblock.pr_cache.ehtp = (_Unwind_EHT_Header*)(&entry->function_content);
+    ucblock.pr_cache.additional = 1;
+  }
+  else
+  {
+    ucblock.pr_cache.ehtp = (_Unwind_EHT_Header*)(RelativeOffset(&entry->function_content));
+    ucblock.pr_cache.additional = 0;
+  }
+  
+  if(ptrace(PTRACE_PEEKTEXT,m_tid,ucblock.pr_cache.ehtp,NULL) & (1u << 31))
+  {
+     _uw idx = (ptrace(PTRACE_PEEKTEXT, m_tid, ucblock.pr_cache.ehtp, NULL) >> 24) & 0x0f;
+     switch(idx)
+     {
+       case 0:
+         ucblock.unwinder_cache.reserved2 = 1;
+         break;
+       case 1:
+         ucblock.unwinder_cache.reserved2 = 2;
+         break;
+       case 2:
+         ucblock.unwinder_cache.reserved2 = 3;
+         break;
+       default:
+///////// Failed
+         ucblock.unwinder_cache.reserved2 = 0;
+         return _URC_FAILURE;       
+     }
+  }
+  else
+  {
+    ucblock.unwinder_cache.reserved2 = RelativeOffset(ucblock.pr_cache.ehtp);
+//////// TODO: We need to exeute this routine in debugger.
+    return _URC_FAILURE;
+  }
+//////// Ok, we'v got next frame
+  return _URC_OK;
 }
 //+----------------------------------------------------------------------------+
 //| Returns relative address                                                   |

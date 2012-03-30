@@ -50,18 +50,57 @@ struct StackItem
 //+----------------------------------------------------------------------------+
 class CStackTrace
 {
+private:
+  enum
+  {
+    CODE_FINISH = 0xb0
+  };
+  enum EnRegisters
+  {
+    R_IP = 12,
+    R_SP = 13,
+    R_LR = 14,
+    R_PC = 15
+  };
+private:
+  typedef struct { _uw r[16]; } CoreRegs;
+  typedef struct { _uw64 d[16]; _uw pad; } VFPRegs;
+  typedef struct { _uw64 d[16]; } VFPv3Regs;
+  typedef struct { _uw w[3]; } FPAReg;
+  typedef struct { FPAReg f[8]; } FPARegs;
+  typedef struct { _uw64 wd[16]; } WmmxdRegs;
+  typedef struct { _uw wc[4]; } WmmxcRegs;
+
+  typedef struct
+     {
+      /* The first fields must be the same as a phase2_vrs.  */
+      _uw demand_save_flags;
+      CoreRegs core;
+      _uw prev_sp; /* Only valid during forced unwinding.  */
+      VFPRegs vfp;
+      VFPv3Regs vfp_regs_16_to_31;
+      FPARegs fpa;
+      WmmxdRegs wmmxd;
+      WmmxcRegs wmmxc;
+     } Phase1Vars;
 public:
                       CStackTrace(pid_t tid);
-  bool                BackTrace(FILE *file);
+  bool                BackTrace();
 #ifndef NDEBUG
   void                Dump();
 #endif
 private:
+  pid_t               m_tid;
   CMap                m_map;
   StackItem*          m_stack_first;
   StackItem*          m_stack_last;
   pt_regs             m_regs;
 private:
-  bool                AddStackRecord(_uw address, const char* function_name, const char* module_name);
+  bool                AddStackEntry(_uw address, const char* function_name, const char* module_name);
+  _Unwind_Reason_Code AddStackEntry(Phase1Vars &context);
+  _Unwind_Reason_Code UnwindCommon(_Unwind_Control_Block &ucb, Phase1Vars &context, int id);
+  _Unwind_Reason_Code UnwindExecute(Phase1Vars& context, __gnu_unwind_state& uws);
+  _uw8                UnwindNextByte(__gnu_unwind_state& uws);
+  _Unwind_VRS_Result  UnwindVrsPop(Phase1Vars& context, _Unwind_VRS_RegClass regclass, _uw discriminator, _Unwind_VRS_DataRepresentation representation);
 };
 #endif
