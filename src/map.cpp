@@ -31,6 +31,7 @@
 #include "stdlib.h"
 #include <sys/ptrace.h>
 #include <errno.h>
+#include <sys/exec_elf.h>
 //+----------------------------------------------------------------------------+
 //| Constructor. Load module symbols                                           |
 //+----------------------------------------------------------------------------+
@@ -119,6 +120,85 @@ CMap::MapInfo* CMap::ParseLine(char* line)
 //+----------------------------------------------------------------------------+
 //|                                                                            |
 //+----------------------------------------------------------------------------+
+void CMap::ParseElf()
+{
+  MapInfo *temp;
+  Elf32_Ehdr header;
+////////
+  for(temp=m_maps;temp!=NULL;temp=temp->next)
+  {
+    bzero(&header,sizeof(header));
+    GetRemoteStruct((void*)temp->start,&header,sizeof(header));
+    if(!IS_ELF(header)
+       continue;
+/////////
+    Elf32_Phdr phdr;
+    Elf32_Phdr *ptr;
+    ptr = (Elf32_Phdr *) (temp->start + ehdr.e_phoff);
+    for(uint i=0;i<ehdr.e_phnum;i++)
+    {
+////// Parse the program header
+      GetRemoteStruct(pid,(char *)(ptr+i),&phdr,sizeof(Elf32_Phdr));
+#ifdef __arm__
+////// Found a EXIDX segment? */
+      if(phdr.p_type == PT_ARM_EXIDX)
+      {
+        temp->exidx_start = temp->start + phdr.p_offset;
+        temp->exidx_end = temp->exidx_start + phdr.p_filesz;
+        break;
+      }
+#endif
+     temp->symbols = ParseSymbols(temp->name);
+    }
+  }
+}
+//+----------------------------------------------------------------------------+
+//|                                                                            |
+//+----------------------------------------------------------------------------+
+SymbolTable* CMap::ParseSymbols(const char *filename)
+{
+  SymbolTable *table = NULL;
+  struct stat sb;
+  int file;
+  uint8_t *base;
+////////
+  file = open(filename,O_RDONLY);
+  if(file<0)
+    return NULL;
+////////
+  fstat(file,&sb);
+  base = static_cast<uint8_t>(mmap(NULL,, length, PROT_READ, MAP_PRIVATE, file, 0));
+  if(base==NULL)
+  {
+    close(file);
+    return(NULL);
+  }
+////////
+  
+}
+//+----------------------------------------------------------------------------+
+//|                                                                            |
+//+----------------------------------------------------------------------------+
+void CMap::GetRemoteStruct(void *src, void *dst, size_t size)
+{
+  unsigned int i;
+  for(i = 0; i+4 <= size; i+=4)
+    *(int *)((char *)dst+i) = ptrace(PTRACE_PEEKTEXT, m_tid, (char *)src+i, NULL);
+ ////////
+  if(i < size)
+  {
+    int val = ptrace(PTRACE_PEEKTEXT, pid, (char *)src+i, NULL);
+    while (i < size)
+    {
+      ((unsigned char *)dst)[i] = val & 0xff;
+      i++;
+      val >>= 8;
+    }
+  }
+}
+//+----------------------------------------------------------------------------+
+//|                                                                            |
+//+----------------------------------------------------------------------------+
 bool CMap::IsValidAddress(_uw address)
 {
   return GetEntry(address)!=NULL;
@@ -126,7 +206,7 @@ bool CMap::IsValidAddress(_uw address)
 //+----------------------------------------------------------------------------+
 //|                                                                            |
 //+----------------------------------------------------------------------------+
-bool CMap::GetNames(_uw address, const char *mname, uint mname_maxlen, const char *fname, uint fname_maxlen)
+bool CMap::GetNames(_uw& address, char *mname, uint mname_maxlen, char *fname, uint fname_maxlen)
 {
   MapInfo *temp = m_maps;
   uint len;
@@ -140,7 +220,7 @@ bool CMap::GetNames(_uw address, const char *mname, uint mname_maxlen, const cha
     {
       strncpy(mname,temp->name,mname_maxlen);
       len = strlen(temp->name);
-      if(len>3 && memcmp(temp->name+(len-3),".so")==0)
+      if(len>3 && memcmp(temp->name+(len-3),".so",3)==0)
       {
         if(!strstr(temp->name, ".so"))
         {
@@ -149,6 +229,8 @@ bool CMap::GetNames(_uw address, const char *mname, uint mname_maxlen, const cha
         }
         else
         {
+          address -= temp->start;
+          fname[0]='\0';
           /*TableEntry *te = FindFunction((TableEntry *)temp->exidx_start, (temp->exidx_end - temp->exidx_start) / sizeof(TableEntry), address);
           if(te==NULL)
             fname[0]='\0';
@@ -180,7 +262,15 @@ const CMap::TableEntry* CMap::GetEntry(_uw address)
   {
 ///////// Address somewhere in current module. Try to find function
     if(address>=temp->start && address<=temp->end)
-      return FindFunction((TableEntry *)temp->exidx_start, (temp->exidx_end - temp->exidx_start) / sizeof(TableEntry), address);
+    {
+      __android_log_print(ANDROID_LOG_DEBUG,"CrashPin","Found module");
+      const TableEntry *entr = FindFunction((TableEntry *)temp->exidx_start, (temp->exidx_end - temp->exidx_start) / sizeof(TableEntry), address);
+      if(entr==NULL)
+        __android_log_print(ANDROID_LOG_DEBUG,"CrashPin","Funtion not found");
+      else
+        __android_log_print(ANDROID_LOG_DEBUG,"CrashPin","Found function");
+      return entr;
+    }
     temp = temp->next;
   }
 /////////
@@ -298,4 +388,15 @@ const CMap::TableEntry* CMap::FindFunction(const TableEntry* table, int nrec, _u
     else
       left = n + 1;
   }
+}
+//+----------------------------------------------------------------------------+
+//| Parsing so file for symbols                                               |
+//+----------------------------------------------------------------------------+
+
+//+----------------------------------------------------------------------------+
+//| Sort functions by address                                                  |
+//+----------------------------------------------------------------------------+
+int CMap::CompareSymbols(void *left, void *right)
+{
+  return ((struct Symbol*)left)->addr - ((struct Symbol*)right)->addr;
 }

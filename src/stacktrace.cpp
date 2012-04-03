@@ -50,7 +50,7 @@ bool CStackTrace::BackTrace()
  ///////// Checking if app is failed because it called trash
   if(!m_map.IsValidAddress(pc))
   {
-    AddStackEntry(m_regs.ARM_pc,"<trash>","<trash>"); // TODO: Change to common function
+    AddStackEntry(context);
 ////////// We'll try to get stacktrace from caller address
     pc = m_regs.ARM_lr;
   }
@@ -61,7 +61,7 @@ bool CStackTrace::BackTrace()
       break;
 //////////
     _Unwind_SetGR((_Unwind_Context *)&context, 12, (_Unwind_Ptr)&ucb);
-    // TODO: Add stack item
+    AddStackEntry(context);
     switch(ucb.unwinder_cache.reserved2)
     {
       case 1:
@@ -399,6 +399,8 @@ _Unwind_Reason_Code CStackTrace::AddStackEntry(Phase1Vars &context)
 {
   _uw pc = context.core.r[R_PC];
   _uw prev_word;
+  char function[64];
+  char module[128];
 /////
   if(m_stack_first==NULL)
     pc &= ~0x01;
@@ -418,7 +420,8 @@ _Unwind_Reason_Code CStackTrace::AddStackEntry(Phase1Vars &context)
        pc -= 0x04;
   }
 ///////
-  m_map;
+  if(m_map.GetNames(pc,module,sizeof(module),function,sizeof(function)))
+    AddStackEntry(pc,function,module);
 }
 //+----------------------------------------------------------------------------+
 //| Add new record to stack list                                              |
