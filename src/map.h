@@ -95,9 +95,11 @@ private:
   const TableEntry*  GetEntry(_uw address);
   const TableEntry*  FindFunction(const TableEntry* table, int nrec, _uw return_address);
 private:
-  static int         CompareSymbols(void *left, void *right);
   void               ParseElf();
   void               GetRemoteStruct(void *src, void *dst, size_t size);
   SymbolTable*       ParseSymbols(const char *filename);
+private:  
+  static int         CompareSymbols(const void *left, const void *right);
+  static int         SearchSymbol(const void *addr, const void *element);
 };
 #endif

@@ -95,6 +95,7 @@ private:
   StackItem*          m_stack_first;
   StackItem*          m_stack_last;
   pt_regs             m_regs;
+  uint                m_stack_deep;
 private:
   bool                AddStackEntry(_uw address, const char* function_name, const char* module_name);
   _Unwind_Reason_Code AddStackEntry(Phase1Vars &context);

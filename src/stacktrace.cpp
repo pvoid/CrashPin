@@ -33,30 +33,33 @@
 //+----------------------------------------------------------------------------+
 //| Constructor                                                                |
 //+----------------------------------------------------------------------------+
-CStackTrace::CStackTrace(pid_t tid) : m_tid(tid), m_map(tid), m_stack_first(NULL), m_stack_last(NULL)
+CStackTrace::CStackTrace(pid_t tid) : m_tid(tid), m_map(tid), m_stack_first(NULL), 
+                                      m_stack_last(NULL), m_stack_deep(32)
 {
 }
 
 bool CStackTrace::BackTrace()
 {
-  _uw pc;
   _Unwind_Reason_Code code = _URC_OK;
   _Unwind_Control_Block ucb;
   Phase1Vars context = {0};
+  uint stack_deep = 0;
 //////////
   if(ptrace(PTRACE_GETREGS, m_tid, 0, &m_regs)!=0)
      memset(&m_regs,0,sizeof(m_regs));
-  pc = m_regs.ARM_pc;
+////////// Copy regs
+  for(uint index=0;index<16;++index)
+    context.core.r[index] = m_regs.uregs[index];
  ///////// Checking if app is failed because it called trash
-  if(!m_map.IsValidAddress(pc))
+  if(!m_map.IsValidAddress(context.core.r[R_PC]))
   {
     AddStackEntry(context);
 ////////// We'll try to get stacktrace from caller address
-    pc = m_regs.ARM_lr;
+    context.core.r[R_PC] = context.core.r[R_LR];
   }
   do
   {
-    code = m_map.GetEntry(ucb, pc);
+    code = m_map.GetEntry(ucb, context.core.r[R_PC]);
     if(code!=_URC_OK)
       break;
 //////////
@@ -77,8 +80,9 @@ bool CStackTrace::BackTrace()
         code = _URC_FAILURE;
         break;
     }
+    ++stack_deep;
   }
-  while(code!=_URC_END_OF_STACK && code!=_URC_FAILURE); // TODO: Stack depth control
+  while(code!=_URC_END_OF_STACK && code!=_URC_FAILURE && stack_deep < m_stack_deep); // TODO: Stack depth control
   return true;
 }
 //+----------------------------------------------------------------------------+
@@ -461,7 +465,7 @@ void CStackTrace::Dump()
   uint index = 0;
   while(item!=NULL)
   {
-    __android_log_print(ANDROID_LOG_DEBUG,"CrashPin","#%02d 0x%08x %s<%s>",index,item->address,item->module,item->function);
+    __android_log_print(ANDROID_LOG_DEBUG,"CrashPin","#%02d 0x%08x %s(%s)",index,item->address,item->module,item->function);
     ++index;
     item = item->next;
   }
