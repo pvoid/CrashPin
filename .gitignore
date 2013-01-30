@@ -1,1 +1,10 @@
-/test/jni/nbproject/private/
+.*
+test/jni/nbproject/private/
+test/bin/
+test/gen/
+test/libs/
+test/obj/
+test/out/
+test/test.iml
+test/project.properties
+test/jni/nbproject/

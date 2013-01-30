@@ -35,10 +35,8 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <fcntl.h>
-#ifndef NDEBUG
 #include <android/log.h>
 #include <string.h>
-#endif
 //+----------------------------------------------------------------------------+
 //| .ARM.exidx segment                                                         |
 //+----------------------------------------------------------------------------+
@@ -487,7 +485,7 @@ _uw CMap::RelativeOffset(const _uw* address)
 ///////// Peek offset from child memmory 
   _uw offset = ptrace(PTRACE_PEEKTEXT, m_tid, (void*)address, NULL);
   if(offset==-1 && errno)
-    return(NULL);
+    return(0);
 /////////
   if(offset & (1 << 30))
     offset |= 1u << 31;

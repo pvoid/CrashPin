@@ -28,13 +28,21 @@
 
 #include <signal.h>
 
+struct ucontext_t
+{
+  unsigned long uc_flags;
+  struct ucontext_t *uc_link;
+  stack_t uc_stack;
+  sigcontext uc_context;
+};
+
 class SCrashPin
 {
 public:
   static bool Initialize();
 private:
   static void SigactionHandler(int sig, siginfo* info, void* reserved);
-  static void Mosquito(pid_t pid, pid_t tid);
+  //static void Mosquito(pid_t pid, pid_t tid);
 };
 
 #endif	/* CRASHPIN_H */

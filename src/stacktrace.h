@@ -38,19 +38,26 @@
 //+----------------------------------------------------------------------------+
 //|                                                                            |
 //+----------------------------------------------------------------------------+
-struct StackItem
+struct BackstackFrame
 {
-  struct StackItem  *next;
-  _uw                address;
-  char               function[64];
-  char               module[];
+  uintptr_t          address;
+  uintptr_t          stack_top;
+  size_t             stack_size;
 };
 //+----------------------------------------------------------------------------+
 //|                                                                            |
 //+----------------------------------------------------------------------------+
+template<uint SIZE>
 class CStackTrace
 {
 private:
+  BackstackFrame    m_frames[SIZE];
+public:
+                    CStackTrace();
+  virtual          ~CStackTrace();
+//////
+  bool              BackTrace(pid_t tid);
+/*private:
   enum
   {
     CODE_FINISH = 0xb0
@@ -73,10 +80,10 @@ private:
 
   typedef struct
      {
-      /* The first fields must be the same as a phase2_vrs.  */
+      /* The first fields must be the same as a phase2_vrs.  *//*
       _uw demand_save_flags;
       CoreRegs core;
-      _uw prev_sp; /* Only valid during forced unwinding.  */
+      _uw prev_sp; /* Only valid during forced unwinding.  *//*
       VFPRegs vfp;
       VFPv3Regs vfp_regs_16_to_31;
       FPARegs fpa;
@@ -102,6 +109,6 @@ private:
   _Unwind_Reason_Code UnwindCommon(_Unwind_Control_Block &ucb, Phase1Vars &context, int id);
   _Unwind_Reason_Code UnwindExecute(Phase1Vars& context, __gnu_unwind_state& uws);
   _uw8                UnwindNextByte(__gnu_unwind_state& uws);
-  _Unwind_VRS_Result  UnwindVrsPop(Phase1Vars& context, _Unwind_VRS_RegClass regclass, _uw discriminator, _Unwind_VRS_DataRepresentation representation);
+  _Unwind_VRS_Result  UnwindVrsPop(Phase1Vars& context, _Unwind_VRS_RegClass regclass, _uw discriminator, _Unwind_VRS_DataRepresentation representation);*/
 };
 #endif

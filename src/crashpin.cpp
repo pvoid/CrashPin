@@ -32,8 +32,9 @@
 #include <android/log.h>
 #include <sys/ptrace.h>
 #include <errno.h>
-
-#include "stacktrace.h"
+#include <unwind.h>
+#include <asm/sigcontext.h>
+#include "map.h"
 //+----------------------------------------------------------------------------+
 //|                                                                            |
 //+----------------------------------------------------------------------------+
@@ -80,6 +81,10 @@ bool SCrashPin::Initialize()
 //////
   return(true);
 }
+
+
+
+
 //+----------------------------------------------------------------------------+
 //|                                                                            |
 //+----------------------------------------------------------------------------+
@@ -88,7 +93,21 @@ void SCrashPin::SigactionHandler(int sig, siginfo* info, void* reserved)
   pid_t pid = getpid();
   pid_t tid = gettid();
 ////////
-  switch(fork())
+  CMap map(pid);
+  _uw address;
+  ucontext_t *context = (ucontext_t *)reserved;
+  char mname[255] = {0};
+  char fname[255] = {0};
+  
+  /*while(context!=NULL)
+  {
+    address = context->uc_context.arm_pc;
+    map.GetNames(address,mname,255,fname,255);
+    __android_log_print(ANDROID_LOG_ERROR,ProgramTag,"Address 0x%08x %s(%s). Link 0x%08x, 0x%08x",address,mname,fname,context->uc_link,context->uc_context.arm_lr);
+    context = context->uc_link;
+  }*/
+  kill(getpid(), SIGKILL);
+  /*switch(fork())
   {
     case -1:
       kill(getpid(), SIGKILL);
@@ -100,12 +119,12 @@ void SCrashPin::SigactionHandler(int sig, siginfo* info, void* reserved)
     default:
       kill(getpid(), SIGSTOP);
       break;
-  }
+  }*/
 }
 //+----------------------------------------------------------------------------+
 //|                                                                            |
 //+----------------------------------------------------------------------------+
-void SCrashPin::Mosquito(pid_t pid, pid_t tid)
+/*void SCrashPin::Mosquito(pid_t pid, pid_t tid)
 {
   int status, signal;
 ////////
@@ -176,5 +195,5 @@ void SCrashPin::Mosquito(pid_t pid, pid_t tid)
 // Killing child process
 ////////
   kill(pid,SIGKILL);
-}
+}*/
 //+----------------------------------------------------------------------------+

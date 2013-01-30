@@ -30,14 +30,36 @@
 #include <android/log.h>
 #include <string.h>
 #include <strings.h>
+//+------------------------------------------------------------------+
+//| Constructor                                                      |
+//+------------------------------------------------------------------+
+CStackTrace::CStackTrace()
+{
+  bzero(m_frames,sizeof(m_frames));
+}
+//+------------------------------------------------------------------+
+//| Destructor                                                       |
+//+------------------------------------------------------------------+
+CStackTrace::~CStackTrace()
+{
+}
+//+------------------------------------------------------------------+
+//| Trace callstack                                                  |
+//+------------------------------------------------------------------+
+bool CStackTrace::BackTrace(pid_t tid)
+{
+
+}
 //+----------------------------------------------------------------------------+
 //| Constructor                                                                |
 //+----------------------------------------------------------------------------+
-CStackTrace::CStackTrace(pid_t tid) : m_tid(tid), m_map(tid), m_stack_first(NULL), 
+/*CStackTrace::CStackTrace(pid_t tid) : m_tid(tid), m_map(tid), m_stack_first(NULL),
                                       m_stack_last(NULL), m_stack_deep(32)
 {
 }
-
+//+----------------------------------------------------------------------------+
+//| Constructor                                                                |
+//+----------------------------------------------------------------------------+
 bool CStackTrace::BackTrace()
 {
   _Unwind_Reason_Code code = _URC_OK;
@@ -250,7 +272,7 @@ _Unwind_Reason_Code CStackTrace::UnwindExecute(Phase1Vars& context, __gnu_unwind
            continue;
         }
         /* op & 0xf8 == 0xb8.  */
-        /* Pop VFP D[8]-D[8+nnn] with fldmx.  */
+        /* Pop VFP D[8]-D[8+nnn] with fldmx.  *//*
         op = 0x80000 | ((op & 7) + 1);
         if(UnwindVrsPop(context, _UVRSC_VFP, op, _UVRSD_VFPX) != _UVRSR_OK)
            return _URC_FAILURE;
@@ -470,4 +492,4 @@ void CStackTrace::Dump()
     item = item->next;
   }
 }
-#endif
+#endif*/
