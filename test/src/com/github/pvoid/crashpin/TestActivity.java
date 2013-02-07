@@ -23,7 +23,7 @@ public class TestActivity extends Activity
   {
     super.onCreate(savedInstanceState);
     doCrash();
-    _mThread.start();
+   // _mThread.start();
   }
 
   private native void doCrash();

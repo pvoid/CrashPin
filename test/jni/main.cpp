@@ -27,9 +27,11 @@
 //|                                                                            |
 //+----------------------------------------------------------------------------+
 #include "../../src/crashpin.h"
+#include "../../src/dumbvector.h"
 #include <jni.h>
 #include <time.h>
 #include <stdlib.h>
+#include <android/log.h>
 
 typedef void (TestFunc)();
 
@@ -73,7 +75,7 @@ public:
 //+----------------------------------------------------------------------------+
 extern "C" jint JNI_OnLoad(JavaVM *vm, void* /*reserved*/)
 {
-  SCrashPin::Initialize();
+  //SCrashPin::Initialize();
   return JNI_VERSION_1_6;
 }
 //+----------------------------------------------------------------------------+
@@ -81,6 +83,12 @@ extern "C" jint JNI_OnLoad(JavaVM *vm, void* /*reserved*/)
 //+----------------------------------------------------------------------------+
 extern "C" void Java_com_github_pvoid_crashpin_TestActivity_doCrash(JNIEnv *env, jobject self)
 {
-  A::sayA();
+  //A::sayA();
+  TDumbVector<int> data;
+  for(size_t index=0;index<10;++index)
+    data.Add(index);
+  
+  for(size_t index=0;index<10;++index)
+    __android_log_print(ANDROID_LOG_DEBUG,"TEST","Item: %d",data[index]);
 }
 //+----------------------------------------------------------------------------+

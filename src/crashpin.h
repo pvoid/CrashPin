@@ -33,7 +33,7 @@ struct ucontext_t
   unsigned long uc_flags;
   struct ucontext_t *uc_link;
   stack_t uc_stack;
-  sigcontext uc_context;
+  //sigcontext uc_context;
 };
 
 class SCrashPin
