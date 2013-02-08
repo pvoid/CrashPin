@@ -29,6 +29,7 @@
 #include "../../src/crashpin.h"
 #include "../../src/dumbvector.h"
 #include <jni.h>
+#include <math.h>
 #include <time.h>
 #include <stdlib.h>
 #include <android/log.h>
@@ -85,10 +86,11 @@ extern "C" void Java_com_github_pvoid_crashpin_TestActivity_doCrash(JNIEnv *env,
 {
   //A::sayA();
   TDumbVector<int> data;
-  for(size_t index=0;index<10;++index)
-    data.Add(index);
+  srand(time(NULL));
+  for(size_t index=0;index<100;++index)
+    data.Add(rand()%10000);
   
-  for(size_t index=0;index<10;++index)
+  for(size_t index=0;index<100;++index)
     __android_log_print(ANDROID_LOG_DEBUG,"TEST","Item: %d",data[index]);
 }
 //+----------------------------------------------------------------------------+

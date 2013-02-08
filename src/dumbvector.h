@@ -38,6 +38,8 @@ private:
   {
     STEP = 16,
   };
+public:
+  typedef int (SortFunc)(const void *left, const void *right);
 private:
   T*                m_data;
   size_t            m_total;
@@ -47,6 +49,7 @@ public:
                    ~TDumbVector();
   void              Shutdown();
   bool              Add(const T& item);
+  void              Sort(SortFunc comparator);
   
   size_t            Size()                   { return(m_total);       }
   T&                operator[](size_t index) { return(m_data[index]); }
@@ -55,21 +58,22 @@ private:
   bool              Realloc();
 };
 //+----------------------------------------------------------------------------+
-//|                                                                            |
+//| Constructor                                                                |
 //+----------------------------------------------------------------------------+
 template<typename T>
 TDumbVector<T>::TDumbVector() : m_data(NULL), m_total(0), m_size(0)
 {
 }
 //+----------------------------------------------------------------------------+
-//|                                                                            |
+//| Destructor                                                                 |
 //+----------------------------------------------------------------------------+
 template<typename T>
 TDumbVector<T>::~TDumbVector()
 {
+  Shutdown();
 }
 //+----------------------------------------------------------------------------+
-//|                                                                            |
+//| Clear resources                                                            |
 //+----------------------------------------------------------------------------+
 template<typename T>
 void TDumbVector<T>::Shutdown()
@@ -82,23 +86,25 @@ void TDumbVector<T>::Shutdown()
   m_size = m_total = 0;
 }
 //+----------------------------------------------------------------------------+
-//|                                                                            |
+//| Add new item to end of vector                                              |
 //+----------------------------------------------------------------------------+
 template<typename T>
 bool TDumbVector<T>::Add(const T& item)
 {
   if(sizeof(T)*(m_total+1)>m_size && !Realloc()) return(false);
   memmove(m_data + m_total,&item,sizeof(T));
-  __android_log_print(ANDROID_LOG_DEBUG,"TEST","Added %d",item);
   ++m_total;
   return(true);
 }
 //+----------------------------------------------------------------------------+
-//|                                                                            |
+//| Change size of vector                                                      |
 //+----------------------------------------------------------------------------+
 template<typename T>
 bool TDumbVector<T>::Realloc()
 {
+  size_t size;
+  T*     data = NULL;
+//// First allocation?
   if(m_data==NULL)
   {
     m_size = STEP * sizeof(T);
@@ -109,6 +115,32 @@ bool TDumbVector<T>::Realloc()
       }
     return(true);
   }
-  return(false);
+//// New size of data
+  size = m_size + STEP * sizeof(T);
+//// Let's try to realloc our mem
+  if((data = (T *)realloc(m_data,size))!=NULL)
+  {
+    m_data = data;
+    m_size = size;
+    return(true);
+  }
+//// Ok, lets try to allocate new block
+  if((data = (T*)malloc(size))==NULL)
+    return(false);
+//// Copy old data
+  memcpy(data,m_data,m_size);
+  free(m_data);
+  m_data = data;
+  m_size = size;
+//// Ok
+  return(true);
+}
+//+----------------------------------------------------------------------------+
+//| Sorting vector                                                             |
+//+----------------------------------------------------------------------------+
+template<typename T>
+void TDumbVector<T>::Sort(TDumbVector<T>::SortFunc comparator)
+{
+  
 }
 #endif	/* DUMBVECTOR_H */
