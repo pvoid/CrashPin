@@ -79,6 +79,13 @@ extern "C" jint JNI_OnLoad(JavaVM *vm, void* /*reserved*/)
   //SCrashPin::Initialize();
   return JNI_VERSION_1_6;
 }
+
+int compare(const void *left, const void* right)
+{
+  int l = *(int *)left;
+  int r = *(int *)right;
+  return(l-r);
+}
 //+----------------------------------------------------------------------------+
 //|                                                                            |
 //+----------------------------------------------------------------------------+
@@ -89,7 +96,7 @@ extern "C" void Java_com_github_pvoid_crashpin_TestActivity_doCrash(JNIEnv *env,
   srand(time(NULL));
   for(size_t index=0;index<100;++index)
     data.Add(rand()%10000);
-  
+  data.Sort(compare);
   for(size_t index=0;index<100;++index)
     __android_log_print(ANDROID_LOG_DEBUG,"TEST","Item: %d",data[index]);
 }

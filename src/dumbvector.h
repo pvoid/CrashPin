@@ -28,6 +28,7 @@
 
 #include <sys/types.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <android/log.h>
 
 template<typename T>
@@ -141,6 +142,8 @@ bool TDumbVector<T>::Realloc()
 template<typename T>
 void TDumbVector<T>::Sort(TDumbVector<T>::SortFunc comparator)
 {
-  
+  if(m_data==NULL) return;
+//// Sort data
+  qsort(m_data,m_total,sizeof(T),comparator);
 }
 #endif	/* DUMBVECTOR_H */
