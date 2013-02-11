@@ -51,6 +51,7 @@ public:
   void              Shutdown();
   bool              Add(const T& item);
   void              Sort(SortFunc comparator);
+  T*                Search(const void* key, SortFunc comparator);
   
   size_t            Size()                   { return(m_total);       }
   T&                operator[](size_t index) { return(m_data[index]); }
@@ -145,5 +146,29 @@ void TDumbVector<T>::Sort(TDumbVector<T>::SortFunc comparator)
   if(m_data==NULL) return;
 //// Sort data
   qsort(m_data,m_total,sizeof(T),comparator);
+
+}
+//+----------------------------------------------------------------------------+
+//| Searching for item by key                                                  |
+//+----------------------------------------------------------------------------+
+template<typename T>
+T* TDumbVector<T>::Search(const void* key, SortFunc comparator)
+{
+  T* left    = m_data;
+  T* right   = m_data + m_total;
+  T* current = NULL;
+  int res = 0;
+//// We have data?
+  if(m_data==NULL) return(NULL);
+//// Search for value
+  for(;left<right;)
+  {
+    current = left + (right - left)/2;
+    if((res = comparator(key,current))==0) return(current);
+    if(res>0) left = current+1;
+    else      right  = current;
+  }
+//// Nothing found
+  return(NULL);
 }
 #endif	/* DUMBVECTOR_H */

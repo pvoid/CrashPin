@@ -86,6 +86,13 @@ int compare(const void *left, const void* right)
   int r = *(int *)right;
   return(l-r);
 }
+
+int search(const void* key, const void* item)
+{
+  int k = *(int *)key;
+  int l = *(int *)item;
+  return k - l;
+}
 //+----------------------------------------------------------------------------+
 //|                                                                            |
 //+----------------------------------------------------------------------------+
@@ -94,10 +101,14 @@ extern "C" void Java_com_github_pvoid_crashpin_TestActivity_doCrash(JNIEnv *env,
   //A::sayA();
   TDumbVector<int> data;
   srand(time(NULL));
+  int s = 102;
   for(size_t index=0;index<100;++index)
-    data.Add(rand()%10000);
+    data.Add(/*rand()%10000*/100 - index);
   data.Sort(compare);
-  for(size_t index=0;index<100;++index)
-    __android_log_print(ANDROID_LOG_DEBUG,"TEST","Item: %d",data[index]);
+  /*for(size_t index=0;index<100;++index)
+    __android_log_print(ANDROID_LOG_DEBUG,"TEST","Item: %d",data[index]);*/
+  int *item = data.Search(&s,search);
+   if(item==NULL) __android_log_print(ANDROID_LOG_DEBUG,"TEST","Item not found");
+  else           __android_log_print(ANDROID_LOG_DEBUG,"TEST","Found item");
 }
 //+----------------------------------------------------------------------------+
